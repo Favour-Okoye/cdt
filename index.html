@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Children's Day">
+<meta name="theme-color" content="#faf6ed">
+<title>Children's Day Tracker</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%231a2438'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='central' font-family='Georgia,serif' font-size='80' fill='%23faf6ed' font-weight='600'%3ECD%3C/text%3E%3C/svg%3E">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { background: #faf6ed; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
+  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  #root { min-height: 100vh; }
+  #boot { font-family: system-ui; padding: 40px 20px; text-align: center; color: #7a6f56; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="root"><div id="boot">Loading tracker…</div></div>
+
+<script type="text/babel" data-presets="react">
+window.storage = {
+  get: async (key) => { try { const v = localStorage.getItem(key); return v !== null ? { key, value: v, shared: false } : null; } catch (e) { return null; } },
+  set: async (key, value) => { try { localStorage.setItem(key, value); } catch (e) {} return { key, value, shared: false }; },
+  delete: async (key) => { try { localStorage.removeItem(key); } catch (e) {} return { key, deleted: true, shared: false }; },
+  list: async (prefix) => {
+    const keys = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!prefix || k.startsWith(prefix)) keys.push(k); } } catch (e) {}
+    return { keys, prefix, shared: false };
+  }
+};
+
+
+const _SVG = ({ paths, className, strokeWidth }) => (
+  <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" strokeWidth={strokeWidth || 2}
+       strokeLinecap="round" strokeLinejoin="round">{paths}</svg>
+);
+const ChevronDown  = (p) => <_SVG {...p} paths={<path d="m6 9 6 6 6-6"/>} />;
+const ChevronUp    = (p) => <_SVG {...p} paths={<path d="m18 15-6-6-6 6"/>} />;
+const ChevronRight = (p) => <_SVG {...p} paths={<path d="m9 18 6-6-6-6"/>} />;
+const ExternalLink = (p) => <_SVG {...p} paths={<><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></>} />;
+const Plus  = (p) => <_SVG {...p} paths={<><path d="M5 12h14"/><path d="M12 5v14"/></>} />;
+const X     = (p) => <_SVG {...p} paths={<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>} />;
+const AlertTriangle = (p) => <_SVG {...p} paths={<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></>} />;
+const BookOpen = (p) => <_SVG {...p} paths={<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>} />;
+const Music = (p) => <_SVG {...p} paths={<><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></>} />;
+const Sparkles = (p) => <_SVG {...p} paths={<><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></>} />;
+const Check = (p) => <_SVG {...p} paths={<path d="M20 6 9 17l-5-5"/>} />;
+const Calendar = (p) => <_SVG {...p} paths={<><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></>} />;
+const Trash2 = (p) => <_SVG {...p} paths={<><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>} />;
+const Copy = (p) => <_SVG {...p} paths={<><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></>} />;
+const Share2 = (p) => <_SVG {...p} paths={<><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></>} />;
+const Pencil = (p) => <_SVG {...p} paths={<><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></>} />;
+const FileText = (p) => <_SVG {...p} paths={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></>} />;
+const Camera = (p) => <_SVG {...p} paths={<><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></>} />;
+const Search = (p) => <_SVG {...p} paths={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />;
+const ArrowLeft = (p) => <_SVG {...p} paths={<><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></>} />;
+const Users = (p) => <_SVG {...p} paths={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>} />;
+const ImageIcon = (p) => <_SVG {...p} paths={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></>} />;
+const UserPlus = (p) => <_SVG {...p} paths={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></>} />;
+
+const { useState, useEffect, useMemo, useRef } = React;
+
+
+const STORAGE_KEY = 'childrens-day-tracker-v1';
+const IMAGE_KEY_PREFIX = 'cdt-image:';
+const CHILDREN_DAY_ISO = '2026-05-31';
+const FIRST_PRACTICE_ISO = '2026-04-19';
+const MISSED_THRESHOLD = 5;
+const IMAGE_MAX_WIDTH = 900;
+const IMAGE_QUALITY = 0.72;
+const SCHEMA_VERSION = 2;
+
+const ACTIVITIES = [
+  { id: 'bigger-songs', klass: 'bigger', title: 'Songs', teacher: 'Blessing', icon: 'music',
+    links: [
+      { label: 'Song 1', url: 'https://www.youtube.com/watch?v=SVDGih8labM' },
+      { label: 'Song 2', url: 'https://www.youtube.com/watch?v=H7_34K-2EzI' }
+    ], children: [] },
+  { id: 'bigger-spoken-eng', klass: 'bigger', title: 'Spoken Word — English', teacher: 'Blessing', icon: 'sparkles', supportsGroupText: true,
+    children: [
+      { id: 'jubilant', name: 'Jubilant' },
+      { id: 'deborah', name: 'Deborah' },
+      { id: 'beremy', name: 'Beremy' },
+      { id: 'gloria-c', name: 'Gloria' },
+      { id: 'brooklyn', name: 'Brooklyn' }
+    ] },
+  { id: 'bigger-spoken-dutch', klass: 'bigger', title: 'Spoken Word — Dutch', teacher: 'Sandra', icon: 'sparkles', supportsGroupText: true,
+    children: [
+      { id: 'jonathan', name: 'Jonathan' },
+      { id: 'leslie-victory', name: 'Leslie Victory' },
+      { id: 'flourish', name: 'Flourish' }
+    ] },
+  { id: 'bigger-recitation', klass: 'bigger', title: 'Bible Recitation', teacher: 'Sandra', icon: 'book',
+    children: [
+      { id: 'gift', name: 'Gift', verses: 'Job 18:5  ·  Mattheüs 17:2',
+        text: 'Job 18:5\nJa, het licht der goddelozen zal uitgeblust worden, en de vonk zijns vuurs zal niet glinsteren.\n\nMattheüs 17:2\nEn Hij werd voor hen veranderd van gedaante; en Zijn aangezicht blonk gelijk de zon, en Zijn klederen werden wit gelijk het licht.' },
+      { id: 'edrick', name: 'Edrick', verses: '2 Korinthiërs 4:4-6',
+        text: '2 Korinthiërs 4:4\nIn dewelke de god dezer eeuw de zinnen verblind heeft, der ongelovigen, opdat hen niet bestrale de verlichting van het Evangelie der heerlijkheid van Christus, Die het Beeld Gods is.\n\nVers 5\nWant wij prediken niet onszelven, maar Christus Jezus, den Heere; en onszelven, uw dienaars, om Jezus\' wil.\n\nVers 6\nWant God, Die gezegd heeft, dat het licht uit de duisternis zou schijnen, is Degene, Die in onze harten geschenen heeft, om verlichting der kennis der heerlijkheid Gods in het aangezicht van Jezus Christus.' },
+      { id: 'anne', name: 'Anne', verses: 'Ecclesiastes 8:1-2', text: '' }
+    ] },
+  { id: 'middle-song', klass: 'middle', title: 'Song', teacher: 'Emmanuel', icon: 'music',
+    links: [{ label: 'Song', url: 'https://youtu.be/eI302Av7vSI' }], children: [] },
+  { id: 'middle-recitation', klass: 'middle', title: 'Memory Verse', teacher: 'Gloria', icon: 'book',
+    children: [
+      { id: 'odii', name: 'Odii', verses: 'Psalm 31:16', text: '' },
+      { id: 'kwenachi', name: 'Kwenachi', verses: 'Philippians 2:14-15', text: '' },
+      { id: 'michael', name: 'Michael', verses: 'Revelation 21:23', text: '' },
+      { id: 'destiny-o', name: 'Destiny Osazodehi', verses: '1 John 1:7', text: '' },
+      { id: 'destiny-a', name: 'Destiny Atua', verses: 'John 8:12', text: '' },
+      { id: 'emmanuel-c', name: 'Emmanuel', verses: 'Isaiah 60:1', text: '' },
+      { id: 'dominion', name: 'Dominion', verses: 'John 1:5  ·  Dutch', text: '' },
+      { id: 'divine', name: 'Divine', verses: 'Matthew 5:14  ·  Dutch', text: '' }
+    ] },
+  { id: 'middle-dance', klass: 'middle', title: 'Dance', teacher: 'Favour', icon: 'sparkles',
+    links: [{ label: 'Dance', url: 'https://youtube.com/watch?v=9BI2pjFimJQ' }], children: [] },
+  { id: 'smaller-song', klass: 'smaller', title: 'Song', teacher: 'Gloria', icon: 'music',
+    links: [{ label: 'Song', url: 'https://youtube.com/watch?v=jnI0Lnd65bE' }], children: [] },
+  { id: 'general-song-eng', klass: 'general', title: 'General Song — English', teacher: 'Sean', icon: 'music',
+    links: [{ label: 'Song', url: 'https://youtu.be/gM6-tdJvLmU' }], children: [] },
+  { id: 'general-song-dutch', klass: 'general', title: 'General Song — Dutch', teacher: 'Sandra', icon: 'music',
+    links: [{ label: 'Song', url: 'https://youtu.be/EuSkg_2iXZ0' }], children: [] },
+  { id: 'general-drama', klass: 'general', title: 'Drama', teacher: 'Justin', icon: 'sparkles',
+    links: [{ label: 'Drama', url: 'https://youtu.be/zVvw22RJFqw' }], children: [] }
+];
+
+const CLASS_INFO = { bigger: { label: 'Bigger Class' }, middle: { label: 'Middle Class' }, smaller: { label: 'Smaller Class' }, general: { label: 'General' } };
+const classLabel = (k) => CLASS_INFO[k]?.label || k;
+
+const DEFAULT_DATA = {
+  practiceDates: [],
+  attendance: {},
+  childrenRegistry: {},
+  activityChildren: {},
+  assignments: {},
+  activityTexts: {},
+  customTeachers: {},
+  removedActivities: [],
+  customActivities: {},
+  seeded: false,
+  schemaVersion: SCHEMA_VERSION
+};
+
+const newChildId = () => `c-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+const assignmentKey = (childId, activityId) => `${childId}|${activityId}`;
+const normalizeName = (n) => (n || '').trim().toLowerCase();
+
+const formatDate = (iso) => {
+  const d = new Date(iso + 'T12:00:00');
+  return {
+    day: d.toLocaleDateString('en-GB', { weekday: 'short' }),
+    date: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+    dayNum: d.getDay()
+  };
+};
+
+const daysUntil = (iso) => {
+  const target = new Date(iso + 'T12:00:00');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+};
+
+const ActivityIcon = ({ name, className }) => {
+  const map = { music: Music, book: BookOpen, sparkles: Sparkles };
+  const I = map[name] || Sparkles;
+  return <I className={className} />;
+};
+
+const classifyActivity = (a) => {
+  if (a.icon === 'book') return 'recitation';
+  if (/spoken word/i.test(a.title)) return 'spoken-word';
+  if (a.icon === 'music') return 'song';
+  return 'other';
+};
+
+const copyToClipboard = async (text) => {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      return true;
+    } catch (e2) { return false; }
+  }
+};
+
+const dataURLtoBlob = (dataURL) => {
+  const [header, base64] = dataURL.split(',');
+  const mime = header.match(/data:(.*?);/)?.[1] || 'image/jpeg';
+  const bin = atob(base64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+};
+
+const shareTextOrFiles = async ({ title, text, imageDataURL }) => {
+  if (!navigator.share) return false;
+  try {
+    const payload = { title, text };
+    if (imageDataURL && navigator.canShare) {
+      const blob = dataURLtoBlob(imageDataURL);
+      const file = new File([blob], 'image.jpg', { type: blob.type });
+      if (navigator.canShare({ files: [file] })) payload.files = [file];
+    }
+    await navigator.share(payload);
+    return true;
+  } catch (e) { return false; }
+};
+
+const compressImage = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onerror = reject;
+  reader.onload = () => {
+    const img = new Image();
+    img.onerror = reject;
+    img.onload = () => {
+      const ratio = Math.min(1, IMAGE_MAX_WIDTH / img.width);
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', IMAGE_QUALITY));
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// ===== Migration v1 → v2 =====
+function migrateToV2(oldData) {
+  if ((oldData.schemaVersion || 1) >= 2) return { data: oldData, idRemap: null };
+
+  const registry = {};
+  const activityChildren = {};
+  const assignments = {};
+  const idRemap = {}; // old child id -> canonical child id
+
+  const findOrCreate = (name, klass, preferredId) => {
+    const lname = normalizeName(name);
+    for (const [id, c] of Object.entries(registry)) {
+      if (c.klass === klass && normalizeName(c.name) === lname) return id;
+    }
+    const id = preferredId || newChildId();
+    registry[id] = { id, name: name.trim(), klass };
+    return id;
+  };
+
+  const removedSet = new Set(oldData.removedChildren || []);
+
+  // Initial roster
+  ACTIVITIES.forEach(activity => {
+    activityChildren[activity.id] = [];
+    activity.children.forEach(c => {
+      if (removedSet.has(c.id)) return;
+      const id = findOrCreate(c.name, activity.klass, c.id);
+      idRemap[c.id] = id;
+      if (!activityChildren[activity.id].includes(id)) activityChildren[activity.id].push(id);
+      assignments[assignmentKey(id, activity.id)] = {
+        verses: c.verses || '',
+        text: oldData.customTexts?.[c.id] !== undefined ? oldData.customTexts[c.id] : (c.text || '')
+      };
+    });
+  });
+
+  // Custom activities — register them so we can find their klass
+  const customActsList = Object.values(oldData.customActivities || {}).flat();
+  customActsList.forEach(a => { if (!activityChildren[a.id]) activityChildren[a.id] = []; });
+
+  // Added children (across all activities, both built-in and custom)
+  Object.entries(oldData.addedChildren || {}).forEach(([activityId, kids]) => {
+    if (!activityChildren[activityId]) activityChildren[activityId] = [];
+    const builtIn = ACTIVITIES.find(a => a.id === activityId);
+    const custom = customActsList.find(a => a.id === activityId);
+    const klass = builtIn?.klass || custom?.klass;
+    if (!klass) return;
+
+    kids.forEach(c => {
+      const id = findOrCreate(c.name, klass, c.id);
+      idRemap[c.id] = id;
+      if (!activityChildren[activityId].includes(id)) activityChildren[activityId].push(id);
+      const k = assignmentKey(id, activityId);
+      if (!assignments[k]) {
+        assignments[k] = {
+          verses: c.verses || '',
+          text: oldData.customTexts?.[c.id] !== undefined ? oldData.customTexts[c.id] : (c.text || '')
+        };
+      }
+    });
+  });
+
+  // Remap attendance to canonical IDs
+  const newAttendance = {};
+  Object.entries(oldData.attendance || {}).forEach(([key, value]) => {
+    if (!value) return;
+    const [oldId, dateId] = key.split('|');
+    const newId = idRemap[oldId] || oldId;
+    newAttendance[`${newId}|${dateId}`] = true;
+  });
+
+  const { addedChildren, removedChildren, customTexts, ...rest } = oldData;
+  return {
+    data: {
+      ...DEFAULT_DATA,
+      ...rest,
+      attendance: newAttendance,
+      childrenRegistry: registry,
+      activityChildren,
+      assignments,
+      schemaVersion: SCHEMA_VERSION
+    },
+    idRemap
+  };
+}
+
+async function migrateImageKeys(idRemap) {
+  if (!idRemap) return;
+  try {
+    const list = await window.storage.list(IMAGE_KEY_PREFIX);
+    if (!list?.keys) return;
+    for (const key of list.keys) {
+      const oldId = key.slice(IMAGE_KEY_PREFIX.length);
+      const newId = idRemap[oldId];
+      if (newId && newId !== oldId) {
+        const r = await window.storage.get(key);
+        if (r) {
+          const targetKey = IMAGE_KEY_PREFIX + newId;
+          const existing = await window.storage.get(targetKey);
+          if (!existing) await window.storage.set(targetKey, r.value);
+          await window.storage.delete(key);
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+function ChildrensDayTracker() {
+  const [data, setData] = useState(DEFAULT_DATA);
+  const [images, setImages] = useState({});
+  const [loaded, setLoaded] = useState(false);
+  const [mode, setMode] = useState('activities');
+  const [filter, setFilter] = useState('all');
+  const [collapsed, setCollapsed] = useState({});
+  const [datesOpen, setDatesOpen] = useState(false);
+  const [newDate, setNewDate] = useState('');
+  const [saveStatus, setSaveStatus] = useState('saved');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [detailChildId, setDetailChildId] = useState(null);
+  const [pickerActivityId, setPickerActivityId] = useState(null);
+  const [creatingChildContext, setCreatingChildContext] = useState(null); // { klass, activityId? }
+  const saveTimer = useRef(null);
+
+  // Load + migrate
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      let migrated = null;
+      try {
+        const r = await window.storage.get(STORAGE_KEY);
+        if (!cancelled && r) {
+          const parsed = JSON.parse(r.value);
+          const result = migrateToV2(parsed);
+          migrated = result;
+          setData({ ...DEFAULT_DATA, ...result.data });
+        }
+      } catch (e) {}
+      if (migrated?.idRemap) {
+        await migrateImageKeys(migrated.idRemap);
+      }
+      try {
+        const list = await window.storage.list(IMAGE_KEY_PREFIX);
+        if (list?.keys) {
+          const imgs = {};
+          for (const k of list.keys) {
+            const r = await window.storage.get(k);
+            if (r) imgs[k.slice(IMAGE_KEY_PREFIX.length)] = r.value;
+          }
+          if (!cancelled) setImages(imgs);
+        }
+      } catch (e) {}
+      if (!cancelled) setLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Seed first practice + initial registry on first run
+  useEffect(() => {
+    if (!loaded || data.seeded) return;
+    setData(prev => {
+      const reg = { ...prev.childrenRegistry };
+      const ac = { ...prev.activityChildren };
+      const asg = { ...prev.assignments };
+      // Seed registry from initial roster if empty
+      if (Object.keys(reg).length === 0) {
+        ACTIVITIES.forEach(activity => {
+          if (!ac[activity.id]) ac[activity.id] = [];
+          activity.children.forEach(c => {
+            if (!reg[c.id]) reg[c.id] = { id: c.id, name: c.name, klass: activity.klass };
+            if (!ac[activity.id].includes(c.id)) ac[activity.id].push(c.id);
+            const k = assignmentKey(c.id, activity.id);
+            if (!asg[k]) asg[k] = { verses: c.verses || '', text: c.text || '' };
+          });
+        });
+      }
+      return {
+        ...prev,
+        childrenRegistry: reg,
+        activityChildren: ac,
+        assignments: asg,
+        practiceDates: prev.practiceDates.length === 0 ? [{ id: 'd-seed-0419', date: FIRST_PRACTICE_ISO }] : prev.practiceDates,
+        seeded: true
+      };
+    });
+  }, [loaded, data.seeded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    setSaveStatus('saving');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try { await window.storage.set(STORAGE_KEY, JSON.stringify(data)); setSaveStatus('saved'); }
+      catch (e) { setSaveStatus('error'); }
+    }, 300);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [data, loaded]);
+
+  const sortedDates = useMemo(() => [...data.practiceDates].sort((a, b) => a.date.localeCompare(b.date)), [data.practiceDates]);
+  const cdayCountdown = daysUntil(CHILDREN_DAY_ISO);
+
+  // Date management
+  const addDate = () => {
+    if (!newDate) return;
+    if (data.practiceDates.some(p => p.date === newDate)) { setNewDate(''); return; }
+    setData(prev => ({ ...prev, practiceDates: [...prev.practiceDates, { id: `d-${Date.now()}`, date: newDate }] }));
+    setNewDate('');
+  };
+  const removeDate = (id) => setData(prev => {
+    const newAtt = { ...prev.attendance };
+    Object.keys(newAtt).forEach(k => { if (k.endsWith(`|${id}`)) delete newAtt[k]; });
+    return { ...prev, practiceDates: prev.practiceDates.filter(p => p.id !== id), attendance: newAtt };
+  });
+
+  const toggleAttendance = (childId, dateId) => {
+    const key = `${childId}|${dateId}`;
+    setData(prev => ({ ...prev, attendance: { ...prev.attendance, [key]: !prev.attendance[key] } }));
+  };
+
+  const setTeacher = (aid, name) => setData(prev => ({ ...prev, customTeachers: { ...prev.customTeachers, [aid]: name } }));
+  const setActivityText = (aid, t) => setData(prev => ({ ...prev, activityTexts: { ...prev.activityTexts, [aid]: t } }));
+
+  // Children registry
+  const findChildByName = (name, klass) => {
+    const lname = normalizeName(name);
+    return Object.values(data.childrenRegistry).find(c => c.klass === klass && normalizeName(c.name) === lname) || null;
+  };
+
+  const createChild = ({ name, klass, verses = '', text = '' }, alsoAssignTo = null) => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const existing = findChildByName(trimmed, klass);
+    let id;
+    setData(prev => {
+      let registry = prev.childrenRegistry;
+      let activityChildren = prev.activityChildren;
+      let assignments = prev.assignments;
+      if (existing) {
+        id = existing.id;
+      } else {
+        id = newChildId();
+        registry = { ...registry, [id]: { id, name: trimmed, klass } };
+      }
+      if (alsoAssignTo) {
+        const list = activityChildren[alsoAssignTo] || [];
+        if (!list.includes(id)) {
+          activityChildren = { ...activityChildren, [alsoAssignTo]: [...list, id] };
+        }
+        const k = assignmentKey(id, alsoAssignTo);
+        if (!assignments[k]) {
+          assignments = { ...assignments, [k]: { verses, text } };
+        }
+      }
+      return { ...prev, childrenRegistry: registry, activityChildren, assignments };
+    });
+    return id;
+  };
+
+  const assignToActivity = (childId, activityId) => {
+    setData(prev => {
+      const list = prev.activityChildren[activityId] || [];
+      if (list.includes(childId)) return prev;
+      const newAssignments = { ...prev.assignments };
+      const k = assignmentKey(childId, activityId);
+      if (!newAssignments[k]) newAssignments[k] = { verses: '', text: '' };
+      return {
+        ...prev,
+        activityChildren: { ...prev.activityChildren, [activityId]: [...list, childId] },
+        assignments: newAssignments
+      };
+    });
+  };
+
+  const unassignFromActivity = (childId, activityId) => {
+    setData(prev => {
+      const list = (prev.activityChildren[activityId] || []).filter(id => id !== childId);
+      const newAssignments = { ...prev.assignments };
+      delete newAssignments[assignmentKey(childId, activityId)];
+      return {
+        ...prev,
+        activityChildren: { ...prev.activityChildren, [activityId]: list },
+        assignments: newAssignments
+      };
+    });
+  };
+
+  const removeChildEverywhere = (childId) => {
+    setData(prev => {
+      const newRegistry = { ...prev.childrenRegistry };
+      delete newRegistry[childId];
+      const newActivityChildren = {};
+      Object.entries(prev.activityChildren).forEach(([aid, ids]) => {
+        newActivityChildren[aid] = ids.filter(id => id !== childId);
+      });
+      const newAssignments = { ...prev.assignments };
+      Object.keys(newAssignments).forEach(k => { if (k.startsWith(`${childId}|`)) delete newAssignments[k]; });
+      const newAttendance = { ...prev.attendance };
+      Object.keys(newAttendance).forEach(k => { if (k.startsWith(`${childId}|`)) delete newAttendance[k]; });
+      return {
+        ...prev,
+        childrenRegistry: newRegistry,
+        activityChildren: newActivityChildren,
+        assignments: newAssignments,
+        attendance: newAttendance
+      };
+    });
+    deleteChildImage(childId);
+  };
+
+  const renameChild = (childId, newName) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    setData(prev => {
+      const c = prev.childrenRegistry[childId];
+      if (!c) return prev;
+      // Check for clash
+      const lname = normalizeName(trimmed);
+      const clash = Object.values(prev.childrenRegistry).find(o => o.id !== childId && o.klass === c.klass && normalizeName(o.name) === lname);
+      if (clash) {
+        alert(`There's already a "${trimmed}" in ${classLabel(c.klass)}. Names must be unique within a class.`);
+        return prev;
+      }
+      return { ...prev, childrenRegistry: { ...prev.childrenRegistry, [childId]: { ...c, name: trimmed } } };
+    });
+  };
+
+  const setAssignment = (childId, activityId, patch) => {
+    setData(prev => {
+      const k = assignmentKey(childId, activityId);
+      const cur = prev.assignments[k] || { verses: '', text: '' };
+      return { ...prev, assignments: { ...prev.assignments, [k]: { ...cur, ...patch } } };
+    });
+  };
+
+  // Activity removal
+  const removeActivity = (aid, isCustom, klass) => {
+    if (!isCustom) {
+      setData(prev => ({ ...prev, removedActivities: [...prev.removedActivities, aid] }));
+      return;
+    }
+    setData(prev => {
+      const newAct = { ...prev.activityChildren };
+      delete newAct[aid];
+      const newAssignments = { ...prev.assignments };
+      Object.keys(newAssignments).forEach(k => { if (k.endsWith(`|${aid}`)) delete newAssignments[k]; });
+      const newActText = { ...prev.activityTexts };
+      delete newActText[aid];
+      const newCustomTeachers = { ...prev.customTeachers };
+      delete newCustomTeachers[aid];
+      return {
+        ...prev,
+        customActivities: { ...prev.customActivities, [klass]: (prev.customActivities[klass] || []).filter(a => a.id !== aid) },
+        activityChildren: newAct,
+        assignments: newAssignments,
+        activityTexts: newActText,
+        customTeachers: newCustomTeachers
+      };
+    });
+  };
+  const restoreActivity = (aid) => setData(prev => ({ ...prev, removedActivities: prev.removedActivities.filter(id => id !== aid) }));
+
+  const addCustomActivity = (klass, a) => {
+    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    setData(prev => ({
+      ...prev,
+      customActivities: { ...prev.customActivities, [klass]: [...(prev.customActivities[klass] || []), { ...a, id, klass, _custom: true, supportsGroupText: true }] },
+      activityChildren: { ...prev.activityChildren, [id]: [] }
+    }));
+  };
+
+  // Images
+  const setChildImage = async (cid, dataURL) => {
+    setImages(prev => ({ ...prev, [cid]: dataURL }));
+    try { await window.storage.set(IMAGE_KEY_PREFIX + cid, dataURL); }
+    catch (e) { alert('Could not save image (storage full?). Try a smaller file.'); }
+  };
+  const deleteChildImage = async (cid) => {
+    setImages(prev => { const c = { ...prev }; delete c[cid]; return c; });
+    try { await window.storage.delete(IMAGE_KEY_PREFIX + cid); } catch (e) {}
+  };
+
+  // Computed
+  const allActivitiesRaw = useMemo(() => {
+    const customs = Object.values(data.customActivities || {}).flat();
+    return [...ACTIVITIES, ...customs];
+  }, [data.customActivities]);
+
+  const visibleActivities = useMemo(() => allActivitiesRaw.filter(a => !data.removedActivities.includes(a.id)), [allActivitiesRaw, data.removedActivities]);
+  const removedActivitiesList = useMemo(() => allActivitiesRaw.filter(a => data.removedActivities.includes(a.id)), [allActivitiesRaw, data.removedActivities]);
+
+  const getChildrenOf = (activityId) => {
+    const ids = data.activityChildren[activityId] || [];
+    return ids.map(id => data.childrenRegistry[id]).filter(Boolean);
+  };
+
+  const getActivitiesForChild = (childId) => {
+    const list = [];
+    visibleActivities.forEach(activity => {
+      if ((data.activityChildren[activity.id] || []).includes(childId)) {
+        list.push(activity);
+      }
+    });
+    return list;
+  };
+
+  const allChildrenList = useMemo(() => Object.values(data.childrenRegistry), [data.childrenRegistry]);
+
+  const childrenWithMeta = useMemo(() => {
+    return allChildrenList.map(child => {
+      const acts = getActivitiesForChild(child.id);
+      const types = new Set(acts.map(classifyActivity));
+      return { ...child, activities: acts, types };
+    });
+  }, [allChildrenList, data.activityChildren, data.removedActivities, data.customActivities]);
+
+  const getMissedCount = (cid) => sortedDates.filter(d => !data.attendance[`${cid}|${d.id}`]).length;
+  const getAttendedCount = (cid) => sortedDates.filter(d => data.attendance[`${cid}|${d.id}`]).length;
+
+  const detailChild = detailChildId ? data.childrenRegistry[detailChildId] : null;
+  const pickerActivity = pickerActivityId ? allActivitiesRaw.find(a => a.id === pickerActivityId) : null;
+
+  if (!loaded) {
+    return <div className="min-h-screen flex items-center justify-center" style={{ background: '#faf6ed' }}><div style={{ color: '#7a6f56', fontSize: 14 }}>Loading…</div></div>;
+  }
+
+  return (
+    <div className="min-h-screen pb-20" style={{ background: '#faf6ed', color: '#1a2438' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Outfit:wght@300;400;500;600&display=swap');
+        .font-display { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; }
+        .font-body { font-family: 'Outfit', system-ui, -apple-system, sans-serif; }
+        body { font-family: 'Outfit', system-ui, sans-serif; }
+        .att-dot { transition: all 0.15s ease; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        .att-dot:active { transform: scale(0.92); }
+        textarea, input { font-family: 'Outfit', system-ui, sans-serif; }
+        button { -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { scrollbar-width: none; }
+      `}</style>
+
+      <div className="font-body">
+        <Header
+          cdayCountdown={cdayCountdown}
+          totalChildren={allChildrenList.length}
+          totalDates={sortedDates.length}
+          saveStatus={saveStatus}
+          mode={mode} setMode={setMode}
+        />
+
+        <div className="max-w-2xl mx-auto px-4 pt-4">
+          <PracticeDatesPanel sortedDates={sortedDates} datesOpen={datesOpen} setDatesOpen={setDatesOpen}
+            newDate={newDate} setNewDate={setNewDate} addDate={addDate} removeDate={removeDate} />
+
+          {mode === 'activities' && (
+            <ActivitiesView
+              filter={filter} setFilter={setFilter}
+              visibleActivities={visibleActivities} removedActivitiesList={removedActivitiesList}
+              collapsed={collapsed} setCollapsed={setCollapsed}
+              data={data} images={images} sortedDates={sortedDates}
+              getChildrenOf={getChildrenOf}
+              getMissedCount={getMissedCount} getAttendedCount={getAttendedCount}
+              onToggleAttendance={toggleAttendance}
+              onSetTeacher={setTeacher} onSetActivityText={setActivityText}
+              onOpenPicker={(activityId) => setPickerActivityId(activityId)}
+              onRemoveActivity={removeActivity} onRestoreActivity={restoreActivity}
+              onAddCustomActivity={addCustomActivity}
+              onOpenChild={(childId) => setDetailChildId(childId)}
+            />
+          )}
+
+          {mode === 'attendance' && (
+            <AttendanceView
+              childrenWithMeta={childrenWithMeta}
+              sortedDates={sortedDates}
+              attendance={data.attendance}
+              onToggleAttendance={toggleAttendance}
+              getMissedCount={getMissedCount} getAttendedCount={getAttendedCount}
+              onOpenChild={(childId) => setDetailChildId(childId)}
+            />
+          )}
+
+          {mode === 'children' && (
+            <ChildrenDirectoryView
+              childrenWithMeta={childrenWithMeta}
+              searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+              filter={filter} setFilter={setFilter}
+              typeFilter={typeFilter} setTypeFilter={setTypeFilter}
+              onOpenChild={(childId) => setDetailChildId(childId)}
+              onAddNewChild={() => setCreatingChildContext({ klass: 'bigger' })}
+            />
+          )}
+
+          <FooterReminders />
+        </div>
+      </div>
+
+      {detailChild && (
+        <ChildDetailSheet
+          child={detailChild}
+          activities={getActivitiesForChild(detailChild.id)}
+          allActivities={allActivitiesRaw.filter(a => !data.removedActivities.includes(a.id))}
+          data={data} image={images[detailChild.id]}
+          sortedDates={sortedDates}
+          missed={getMissedCount(detailChild.id)} attended={getAttendedCount(detailChild.id)}
+          onClose={() => setDetailChildId(null)}
+          onToggleAttendance={(dateId) => toggleAttendance(detailChild.id, dateId)}
+          onSetAssignment={(activityId, patch) => setAssignment(detailChild.id, activityId, patch)}
+          onSetImage={(dataURL) => setChildImage(detailChild.id, dataURL)}
+          onDeleteImage={() => deleteChildImage(detailChild.id)}
+          onUnassign={(activityId) => unassignFromActivity(detailChild.id, activityId)}
+          onAssign={(activityId) => assignToActivity(detailChild.id, activityId)}
+          onRename={(name) => renameChild(detailChild.id, name)}
+          onRemoveCompletely={() => {
+            if (window.confirm(`Delete ${detailChild.name} entirely? This removes them from all activities.`)) {
+              removeChildEverywhere(detailChild.id);
+              setDetailChildId(null);
+            }
+          }}
+        />
+      )}
+
+      {pickerActivity && (
+        <ChildPicker
+          activity={pickerActivity}
+          allChildren={allChildrenList}
+          assignedIds={data.activityChildren[pickerActivity.id] || []}
+          onClose={() => setPickerActivityId(null)}
+          onPick={(childId) => { assignToActivity(childId, pickerActivity.id); setPickerActivityId(null); }}
+          onCreateNew={() => {
+            setCreatingChildContext({ klass: pickerActivity.klass, activityId: pickerActivity.id });
+            setPickerActivityId(null);
+          }}
+        />
+      )}
+
+      {creatingChildContext && (
+        <CreateChildSheet
+          context={creatingChildContext}
+          existingNames={Object.values(data.childrenRegistry).map(c => ({ name: c.name, klass: c.klass }))}
+          onClose={() => setCreatingChildContext(null)}
+          onCreate={(payload) => {
+            const id = createChild(payload, creatingChildContext.activityId);
+            setCreatingChildContext(null);
+            if (id) setDetailChildId(id);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function Header({ cdayCountdown, totalChildren, totalDates, saveStatus, mode, setMode }) {
+  return (
+    <header className="sticky top-0 z-20 backdrop-blur" style={{ background: 'rgba(250, 246, 237, 0.94)', borderBottom: '1px solid #e8dfc9' }}>
+      <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <div>
+            <h1 className="font-display text-2xl font-semibold leading-tight">Children's Day</h1>
+            <p className="text-xs uppercase tracking-widest mt-0.5" style={{ color: '#b04a2f', letterSpacing: '0.18em' }}>Practice Tracker</p>
+          </div>
+          <div className="text-right">
+            <div className="inline-flex flex-col items-end px-3 py-1.5 rounded-lg" style={{ background: '#1a2438', color: '#faf6ed' }}>
+              <span className="text-[10px] uppercase tracking-widest opacity-70">31 May</span>
+              <span className="font-display text-lg font-semibold leading-none">{cdayCountdown > 0 ? `${cdayCountdown}d` : cdayCountdown === 0 ? 'TODAY' : '—'}</span>
+            </div>
+            <div className="text-[10px] mt-1" style={{ color: saveStatus === 'error' ? '#b04a2f' : '#7a6f56' }}>
+              {saveStatus === 'saved' && '✓ saved'}{saveStatus === 'saving' && 'saving…'}{saveStatus === 'error' && '! save error'}
+            </div>
+          </div>
+        </div>
+        <div className="text-xs mt-2" style={{ color: '#7a6f56' }}>{totalChildren} children · {totalDates} practice{totalDates === 1 ? '' : 's'}</div>
+        <div className="flex gap-1 mt-3 p-1 rounded-lg" style={{ background: '#fff9ec', border: '1px solid #e8dfc9' }}>
+          {[
+            { id: 'activities', label: 'Activities', Icon: Sparkles },
+            { id: 'attendance', label: 'Attendance', Icon: Check },
+            { id: 'children',   label: 'Children',   Icon: Users }
+          ].map(t => (
+            <button key={t.id} onClick={() => setMode(t.id)}
+              className="flex-1 px-2 py-1.5 rounded-md text-xs font-medium inline-flex items-center justify-center gap-1 transition"
+              style={{ background: mode === t.id ? '#1a2438' : 'transparent', color: mode === t.id ? '#faf6ed' : '#1a2438' }}>
+              <t.Icon className="w-3.5 h-3.5" />{t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function PracticeDatesPanel({ sortedDates, datesOpen, setDatesOpen, newDate, setNewDate, addDate, removeDate }) {
+  return (
+    <section className="rounded-xl mb-5" style={{ background: '#fff9ec', border: '1px solid #e8dfc9' }}>
+      <button onClick={() => setDatesOpen(!datesOpen)} className="w-full flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4" style={{ color: '#b04a2f' }} />
+          <span className="font-display text-base font-semibold">Practice Dates</span>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#1a2438', color: '#faf6ed' }}>{sortedDates.length}</span>
+        </div>
+        {datesOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      </button>
+      {datesOpen && (
+        <div className="px-4 pb-4">
+          <div className="flex gap-2 mb-3">
+            <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-lg text-sm"
+              style={{ background: '#faf6ed', border: '1px solid #d4c8a8', color: '#1a2438' }} />
+            <button onClick={addDate} disabled={!newDate}
+              className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 disabled:opacity-40"
+              style={{ background: '#1a2438', color: '#faf6ed' }}>
+              <Plus className="w-4 h-4" /> Add
+            </button>
+          </div>
+          {sortedDates.length === 0 ? <p className="text-xs" style={{ color: '#7a6f56' }}>No practices yet.</p> : (
+            <div className="space-y-1.5">
+              {sortedDates.map(d => {
+                const f = formatDate(d.date);
+                const isWeekend = f.dayNum === 0 || f.dayNum === 6;
+                return (
+                  <div key={d.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: '#faf6ed' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{f.day}</span>
+                      <span className="text-sm" style={{ color: '#7a6f56' }}>{f.date}</span>
+                      {!isWeekend && <span className="text-[10px] uppercase tracking-wider" style={{ color: '#b04a2f' }}>weekday</span>}
+                    </div>
+                    <button onClick={() => removeDate(d.id)} className="p-1.5 rounded-md" style={{ color: '#7a6f56' }}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function FooterReminders() {
+  return (
+    <section className="mt-8 rounded-xl px-4 py-4" style={{ background: '#fff9ec', border: '1px solid #e8dfc9' }}>
+      <h3 className="font-display text-sm font-semibold mb-2" style={{ color: '#b04a2f' }}>Reminders</h3>
+      <ul className="text-xs space-y-1.5" style={{ color: '#3a3528' }}>
+        <li>• Spoken Word participants do <strong>not</strong> also do Bible Recitation.</li>
+        <li>• Amber flag at <strong>{MISSED_THRESHOLD}+ missed practices</strong>.</li>
+        <li>• A child is one person — adding "Anne" twice picks the existing Anne.</li>
+        <li>• Tap a name to open detail. Edit per-activity text and one shared image.</li>
+        <li>• Activities and children are deletable; activities are restorable.</li>
+      </ul>
+    </section>
+  );
+}
+
+function ActivitiesView({
+  filter, setFilter, visibleActivities, removedActivitiesList,
+  collapsed, setCollapsed, data, images, sortedDates,
+  getChildrenOf, getMissedCount, getAttendedCount,
+  onToggleAttendance, onSetTeacher, onSetActivityText,
+  onOpenPicker, onRemoveActivity, onRestoreActivity,
+  onAddCustomActivity, onOpenChild
+}) {
+  const filtered = filter === 'all' ? visibleActivities : visibleActivities.filter(a => a.klass === filter);
+  const grouped = useMemo(() => {
+    const map = {};
+    for (const a of filtered) { if (!map[a.klass]) map[a.klass] = []; map[a.klass].push(a); }
+    return map;
+  }, [filtered]);
+
+  return (
+    <>
+      <div className="flex gap-1.5 mb-4 overflow-x-auto -mx-4 px-4 pb-1 no-scrollbar">
+        {[{ id: 'all', label: 'All' }, { id: 'bigger', label: 'Bigger' }, { id: 'middle', label: 'Middle' }, { id: 'smaller', label: 'Smaller' }, { id: 'general', label: 'General' }].map(f => (
+          <button key={f.id} onClick={() => setFilter(f.id)}
+            className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap"
+            style={{ background: filter === f.id ? '#1a2438' : 'transparent', color: filter === f.id ? '#faf6ed' : '#1a2438', border: filter === f.id ? '1px solid #1a2438' : '1px solid #d4c8a8' }}>{f.label}</button>
+        ))}
+      </div>
+
+      {Object.keys(CLASS_INFO).map(klass => {
+        if (filter !== 'all' && filter !== klass) return null;
+        const acts = grouped[klass] || [];
+        const isCollapsed = collapsed[klass];
+        const removedInClass = removedActivitiesList.filter(a => a.klass === klass);
+        return (
+          <section key={klass} className="mb-6">
+            <button onClick={() => setCollapsed(prev => ({ ...prev, [klass]: !prev[klass] }))} className="w-full flex items-center justify-between mb-3">
+              <h2 className="font-display text-xl font-semibold">{CLASS_INFO[klass].label}</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs" style={{ color: '#7a6f56' }}>{acts.length} item{acts.length === 1 ? '' : 's'}</span>
+                {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+              </div>
+            </button>
+            {!isCollapsed && (
+              <div className="space-y-3">
+                {acts.map(activity => (
+                  <ActivityCard
+                    key={activity.id} activity={activity}
+                    teacher={data.customTeachers[activity.id] ?? activity.teacher}
+                    groupText={data.activityTexts[activity.id] ?? ''}
+                    childrenList={getChildrenOf(activity.id)}
+                    sortedDates={sortedDates} attendance={data.attendance}
+                    assignments={data.assignments} images={images}
+                    onToggleAttendance={onToggleAttendance}
+                    onSetTeacher={(name) => onSetTeacher(activity.id, name)}
+                    onSetGroupText={(t) => onSetActivityText(activity.id, t)}
+                    onOpenPicker={() => onOpenPicker(activity.id)}
+                    onRemoveActivity={() => onRemoveActivity(activity.id, !!activity._custom, klass)}
+                    getMissedCount={getMissedCount} getAttendedCount={getAttendedCount}
+                    onOpenChild={onOpenChild}
+                  />
+                ))}
+                <AddActivityButton klass={klass} onAdd={(a) => onAddCustomActivity(klass, a)} />
+                {removedInClass.length > 0 && (
+                  <div className="rounded-xl px-3 py-2" style={{ background: '#fff9ec', border: '1px dashed #d4c8a8' }}>
+                    <div className="text-[11px] font-medium mb-1" style={{ color: '#7a6f56' }}>{removedInClass.length} removed activit{removedInClass.length === 1 ? 'y' : 'ies'}</div>
+                    {removedInClass.map(a => (
+                      <div key={a.id} className="flex items-center justify-between text-xs py-1" style={{ color: '#7a6f56' }}>
+                        <span className="line-through">{a.title}</span>
+                        <button onClick={() => onRestoreActivity(a.id)} className="text-[11px] font-medium px-2 py-0.5 rounded" style={{ background: '#faf6ed' }}>Restore</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </>
+  );
+}
+
+function ActivityCard({
+  activity, teacher, groupText, childrenList, sortedDates, attendance, assignments, images,
+  onToggleAttendance, onSetTeacher, onSetGroupText, onOpenPicker, onRemoveActivity,
+  getMissedCount, getAttendedCount, onOpenChild
+}) {
+  const [editingTeacher, setEditingTeacher] = useState(false);
+  const [teacherDraft, setTeacherDraft] = useState(teacher);
+  const [showGroupText, setShowGroupText] = useState(false);
+  useEffect(() => { setTeacherDraft(teacher); }, [teacher]);
+
+  const isCustom = !!activity._custom;
+  const saveTeacher = () => { onSetTeacher(teacherDraft.trim() || activity.teacher); setEditingTeacher(false); };
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background: '#fff', border: '1px solid #e8dfc9' }}>
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid #f0e8d4' }}>
+        <div className="flex items-start gap-2.5">
+          <div className="mt-0.5 p-1.5 rounded-md" style={{ background: '#faf6ed' }}>
+            <ActivityIcon name={activity.icon} className="w-3.5 h-3.5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-display text-base font-semibold leading-tight flex items-center gap-1.5 flex-wrap">
+                {activity.title}
+                {isCustom && <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded font-body font-medium" style={{ background: '#fff9ec', color: '#b04a2f', border: '1px solid #e8dfc9' }}>custom</span>}
+              </h3>
+              <button
+                onClick={() => { if (window.confirm(`${isCustom ? 'Delete' : 'Remove'} "${activity.title}"?${isCustom ? ' This deletes its children & data.' : ' Restorable later.'}`)) onRemoveActivity(); }}
+                className="p-1 rounded flex-shrink-0" style={{ color: '#7a6f56' }}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-xs" style={{ color: '#7a6f56' }}>Teacher:</span>
+              {editingTeacher ? (
+                <div className="flex items-center gap-1 flex-1">
+                  <input autoFocus value={teacherDraft} onChange={(e) => setTeacherDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveTeacher(); if (e.key === 'Escape') { setEditingTeacher(false); setTeacherDraft(teacher); } }}
+                    className="text-xs px-2 py-0.5 rounded flex-1 max-w-[180px]" style={{ background: '#faf6ed', border: '1px solid #d4c8a8' }} />
+                  <button onClick={saveTeacher} className="p-0.5"><Check className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => { setEditingTeacher(false); setTeacherDraft(teacher); }} className="p-0.5"><X className="w-3.5 h-3.5" /></button>
+                </div>
+              ) : (
+                <button onClick={() => setEditingTeacher(true)} className="text-xs font-medium inline-flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ color: '#1a2438' }}>
+                  {teacher} <Pencil className="w-2.5 h-2.5 opacity-50" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {activity.links && activity.links.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {activity.links.map((link, i) => (
+              <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium"
+                style={{ background: '#faf6ed', color: '#1a2438', border: '1px solid #e8dfc9' }}>
+                {link.label} <ExternalLink className="w-3 h-3" />
+              </a>
+            ))}
+          </div>
+        )}
+
+        {(activity.supportsGroupText || /spoken word/i.test(activity.title)) && (
+          <div className="mt-3">
+            <button onClick={() => setShowGroupText(!showGroupText)}
+              className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium"
+              style={{ background: '#faf6ed', color: '#1a2438', border: '1px solid #e8dfc9' }}>
+              <FileText className="w-3 h-3" />{groupText ? 'Group Script' : 'Add Group Script'}
+              {showGroupText ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+            {showGroupText && (
+              <div className="mt-2">
+                <textarea value={groupText} onChange={(e) => onSetGroupText(e.target.value)}
+                  placeholder="Paste the spoken word piece here..." rows={6}
+                  className="w-full px-3 py-2 text-sm rounded-lg resize-y"
+                  style={{ background: '#faf6ed', border: '1px solid #d4c8a8', color: '#1a2438', minHeight: 120 }} />
+                {groupText && (
+                  <div className="mt-2">
+                    <ShareRow title={`${activity.title} — ${classLabel(activity.klass)}`}
+                      body={`${activity.title} (${classLabel(activity.klass)})\nTeacher: ${teacher}\n\n${groupText}`} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 py-3">
+        {sortedDates.length > 0 && childrenList.length > 0 && (
+          <div className="mb-2 flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar" style={{ paddingLeft: 'calc(50% - 4px)', minHeight: 20 }}>
+            {sortedDates.map(d => {
+              const f = formatDate(d.date);
+              return (
+                <div key={d.id} className="text-[10px] text-center font-medium uppercase tracking-wider flex-shrink-0" style={{ width: 36, color: '#7a6f56' }}>
+                  <div>{f.day.slice(0, 3)}</div>
+                  <div style={{ fontSize: 9, opacity: 0.7 }}>{f.date.split(' ')[0]}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {childrenList.length === 0 && (
+          <p className="text-xs italic mb-2" style={{ color: '#7a6f56' }}>No children assigned. Tap "Add child" to pick from the registry.</p>
+        )}
+
+        <div className="space-y-1.5">
+          {childrenList.map(child => {
+            const k = assignmentKey(child.id, activity.id);
+            const asg = assignments[k] || {};
+            return (
+              <ChildRowCompact key={child.id} child={child} verses={asg.verses} hasImage={!!images[child.id]}
+                practiceDates={sortedDates} attendance={attendance}
+                missed={getMissedCount(child.id)} attended={getAttendedCount(child.id)}
+                onToggleAttendance={onToggleAttendance} onOpen={() => onOpenChild(child.id)} />
+            );
+          })}
+        </div>
+
+        <button onClick={onOpenPicker}
+          className="w-full mt-2 px-3 py-2 rounded-lg text-xs font-medium inline-flex items-center justify-center gap-1"
+          style={{ background: '#faf6ed', color: '#1a2438', border: '1px dashed #d4c8a8' }}>
+          <Plus className="w-3.5 h-3.5" /> Add child
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ChildRowCompact({ child, verses, hasImage, practiceDates, attendance, missed, attended, onToggleAttendance, onOpen }) {
+  const atRisk = practiceDates.length > 0 && missed >= MISSED_THRESHOLD;
+  return (
+    <div className="flex items-center gap-2 px-1 py-1">
+      <button onClick={onOpen} className="flex-1 min-w-0 text-left">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-medium truncate">{child.name}</span>
+          {hasImage && <ImageIcon className="w-3 h-3 flex-shrink-0" style={{ color: '#7a6f56' }} />}
+          {atRisk && <AlertTriangle className="w-3 h-3 flex-shrink-0" style={{ color: '#b04a2f' }} />}
+          <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0 opacity-40" />
+        </div>
+        {verses && <div className="text-[11px] truncate" style={{ color: '#7a6f56' }}>{verses}</div>}
+        {practiceDates.length > 0 && <div className="text-[10px]" style={{ color: atRisk ? '#b04a2f' : '#7a6f56' }}>{attended}/{practiceDates.length} attended</div>}
+      </button>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {practiceDates.map(d => {
+          const present = !!attendance[`${child.id}|${d.id}`];
+          return (
+            <button key={d.id} onClick={(e) => { e.stopPropagation(); onToggleAttendance(child.id, d.id); }}
+              className="att-dot rounded-full flex items-center justify-center"
+              style={{ width: 32, height: 32, background: present ? '#1a2438' : 'transparent', border: present ? '1px solid #1a2438' : '1.5px solid #d4c8a8', color: '#faf6ed' }}>
+              {present && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AttendanceView({ childrenWithMeta, sortedDates, attendance, onToggleAttendance, getMissedCount, getAttendedCount, onOpenChild }) {
+  const byClass = useMemo(() => {
+    const map = { bigger: [], middle: [], smaller: [], general: [] };
+    childrenWithMeta.forEach(c => { (map[c.klass] || (map[c.klass] = [])).push(c); });
+    Object.keys(map).forEach(k => map[k].sort((a, b) => a.name.localeCompare(b.name)));
+    return map;
+  }, [childrenWithMeta]);
+
+  if (childrenWithMeta.length === 0) return <p className="text-sm py-12 text-center" style={{ color: '#7a6f56' }}>No children yet.</p>;
+  if (sortedDates.length === 0) return <p className="text-sm py-12 text-center" style={{ color: '#7a6f56' }}>Add a practice date above to start tracking.</p>;
+
+  return (
+    <>
+      {Object.keys(CLASS_INFO).map(klass => {
+        const entries = byClass[klass] || [];
+        if (entries.length === 0) return null;
+        return (
+          <section key={klass} className="mb-6">
+            <h2 className="font-display text-xl font-semibold mb-3">{CLASS_INFO[klass].label} <span className="text-xs font-body font-normal" style={{ color: '#7a6f56' }}>· {entries.length}</span></h2>
+            <div className="rounded-xl overflow-hidden" style={{ background: '#fff', border: '1px solid #e8dfc9' }}>
+              <div className="px-4 pt-3 pb-2 flex items-center gap-1 overflow-x-auto no-scrollbar" style={{ paddingLeft: 'calc(50% - 4px)' }}>
+                {sortedDates.map(d => {
+                  const f = formatDate(d.date);
+                  return (
+                    <div key={d.id} className="text-[10px] text-center font-medium uppercase tracking-wider flex-shrink-0" style={{ width: 36, color: '#7a6f56' }}>
+                      <div>{f.day.slice(0, 3)}</div>
+                      <div style={{ fontSize: 9, opacity: 0.7 }}>{f.date.split(' ')[0]}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              {entries.map((c, i) => {
+                const missed = getMissedCount(c.id);
+                const attended = getAttendedCount(c.id);
+                const atRisk = missed >= MISSED_THRESHOLD;
+                const acts = c.activities;
+                return (
+                  <div key={c.id} className="flex items-center gap-2 px-3 py-2" style={{ borderTop: i === 0 ? 'none' : '1px solid #f0e8d4' }}>
+                    <button onClick={() => onOpenChild(c.id)} className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-medium truncate">{c.name}</span>
+                        {atRisk && <AlertTriangle className="w-3 h-3 flex-shrink-0" style={{ color: '#b04a2f' }} />}
+                      </div>
+                      <div className="text-[10px] truncate" style={{ color: '#7a6f56' }}>
+                        {acts.length === 0 ? 'No activities' : acts.map(a => a.title).join(' · ')} · {attended}/{sortedDates.length}
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {sortedDates.map(d => {
+                        const present = !!attendance[`${c.id}|${d.id}`];
+                        return (
+                          <button key={d.id} onClick={() => onToggleAttendance(c.id, d.id)}
+                            className="att-dot rounded-full flex items-center justify-center"
+                            style={{ width: 32, height: 32, background: present ? '#1a2438' : 'transparent', border: present ? '1px solid #1a2438' : '1.5px solid #d4c8a8', color: '#faf6ed' }}>
+                            {present && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </>
+  );
+}
+
+function ChildrenDirectoryView({ childrenWithMeta, searchQuery, setSearchQuery, filter, setFilter, typeFilter, setTypeFilter, onOpenChild, onAddNewChild }) {
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    let list = childrenWithMeta.slice();
+    if (filter !== 'all') list = list.filter(c => c.klass === filter);
+    if (typeFilter !== 'all') list = list.filter(c => c.types.has(typeFilter));
+    if (q) list = list.filter(c => c.name.toLowerCase().includes(q));
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    return list;
+  }, [childrenWithMeta, searchQuery, filter, typeFilter]);
+
+  return (
+    <>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute" style={{ left: 12, top: '50%', transform: 'translateY(-50%)', color: '#7a6f56' }} />
+          <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name…" autoComplete="off"
+            className="w-full pl-9 pr-9 py-2.5 rounded-lg text-sm"
+            style={{ background: '#fff', border: '1px solid #d4c8a8', color: '#1a2438' }} />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="absolute" style={{ right: 8, top: '50%', transform: 'translateY(-50%)', color: '#7a6f56' }}>
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <button onClick={onAddNewChild}
+          className="px-3 py-2.5 rounded-lg text-xs font-medium inline-flex items-center gap-1"
+          style={{ background: '#1a2438', color: '#faf6ed' }}>
+          <UserPlus className="w-3.5 h-3.5" /> New
+        </button>
+      </div>
+
+      <div className="flex gap-1.5 mb-2 overflow-x-auto -mx-4 px-4 no-scrollbar">
+        {[{ id: 'all', label: 'All classes' }, { id: 'bigger', label: 'Bigger' }, { id: 'middle', label: 'Middle' }, { id: 'smaller', label: 'Smaller' }, { id: 'general', label: 'General' }].map(f => (
+          <button key={f.id} onClick={() => setFilter(f.id)}
+            className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap"
+            style={{ background: filter === f.id ? '#1a2438' : 'transparent', color: filter === f.id ? '#faf6ed' : '#1a2438', border: filter === f.id ? '1px solid #1a2438' : '1px solid #d4c8a8' }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-1.5 mb-4 overflow-x-auto -mx-4 px-4 pb-1 no-scrollbar">
+        {[{ id: 'all', label: 'All types' }, { id: 'spoken-word', label: 'Spoken Word' }, { id: 'recitation', label: 'Bible Recitation' }, { id: 'song', label: 'Song' }].map(f => (
+          <button key={f.id} onClick={() => setTypeFilter(f.id)}
+            className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap"
+            style={{ background: typeFilter === f.id ? '#b04a2f' : 'transparent', color: typeFilter === f.id ? '#faf6ed' : '#1a2438', border: typeFilter === f.id ? '1px solid #b04a2f' : '1px solid #d4c8a8' }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="text-xs mb-2" style={{ color: '#7a6f56' }}>{filtered.length} result{filtered.length === 1 ? '' : 's'}</div>
+
+      {filtered.length === 0 ? <p className="text-sm py-8 text-center" style={{ color: '#7a6f56' }}>No matches.</p> : (
+        <div className="rounded-xl overflow-hidden" style={{ background: '#fff', border: '1px solid #e8dfc9' }}>
+          {filtered.map((c, i) => (
+            <button key={c.id} onClick={() => onOpenChild(c.id)}
+              className="w-full text-left flex items-center gap-2 px-4 py-3"
+              style={{ borderTop: i === 0 ? 'none' : '1px solid #f0e8d4' }}>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium">{c.name}</div>
+                <div className="text-[11px]" style={{ color: '#7a6f56' }}>
+                  {classLabel(c.klass)}{c.activities.length > 0 ? ` · ${c.activities.map(a => a.title).join(', ')}` : ' · No activities'}
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-40" />
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function ChildDetailSheet({ child, activities, allActivities, data, image, sortedDates, missed, attended, onClose, onToggleAttendance, onSetAssignment, onSetImage, onDeleteImage, onUnassign, onAssign, onRename, onRemoveCompletely }) {
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(child.name);
+  const [zoomImage, setZoomImage] = useState(false);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [showAssignPicker, setShowAssignPicker] = useState(false);
+  const fileInputRef = useRef(null);
+  const atRisk = sortedDates.length > 0 && missed >= MISSED_THRESHOLD;
+
+  useEffect(() => { setNameDraft(child.name); }, [child.name]);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageBusy(true);
+    try { await onSetImage(await compressImage(file)); }
+    catch (err) { alert('Could not process image.'); }
+    setImageBusy(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const saveName = () => {
+    if (nameDraft.trim() && nameDraft.trim() !== child.name) onRename(nameDraft.trim());
+    setEditingName(false);
+  };
+
+  const unassignedActivities = allActivities.filter(a => !activities.some(b => b.id === a.id));
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: '#faf6ed' }}>
+      <div className="sticky top-0 z-10 backdrop-blur" style={{ background: 'rgba(250, 246, 237, 0.95)', borderBottom: '1px solid #e8dfc9' }}>
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button onClick={onClose} className="p-2 -ml-2 rounded-lg"><ArrowLeft className="w-5 h-5" /></button>
+          <div className="flex-1 min-w-0">
+            {editingName ? (
+              <div className="flex items-center gap-1">
+                <input autoFocus value={nameDraft} onChange={(e) => setNameDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setEditingName(false); setNameDraft(child.name); } }}
+                  className="font-display text-lg font-semibold px-2 py-0.5 rounded flex-1"
+                  style={{ background: '#faf6ed', border: '1px solid #d4c8a8' }} />
+                <button onClick={saveName}><Check className="w-4 h-4" /></button>
+                <button onClick={() => { setEditingName(false); setNameDraft(child.name); }}><X className="w-4 h-4" /></button>
+              </div>
+            ) : (
+              <button onClick={() => setEditingName(true)} className="text-left">
+                <h2 className="font-display text-lg font-semibold leading-tight truncate inline-flex items-center gap-1.5">
+                  {child.name} <Pencil className="w-3 h-3 opacity-40" />
+                </h2>
+                <p className="text-xs" style={{ color: '#7a6f56' }}>{classLabel(child.klass)}</p>
+              </button>
+            )}
+          </div>
+          <button onClick={onRemoveCompletely} className="p-2 rounded-lg" style={{ color: '#b04a2f' }}><Trash2 className="w-4 h-4" /></button>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+        {/* Image (per-child) */}
+        <section className="rounded-xl overflow-hidden" style={{ background: '#fff', border: '1px solid #e8dfc9' }}>
+          <div className="px-4 py-2 flex items-center justify-between" style={{ borderBottom: image ? '1px solid #f0e8d4' : 'none' }}>
+            <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#7a6f56' }}>
+              <ImageIcon className="w-3.5 h-3.5" /> Image
+            </div>
+            <div className="flex items-center gap-1">
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+              <button onClick={() => fileInputRef.current?.click()} disabled={imageBusy}
+                className="text-[11px] inline-flex items-center gap-1 px-2 py-1 rounded font-medium"
+                style={{ background: '#1a2438', color: '#faf6ed' }}>
+                <Camera className="w-3 h-3" /> {imageBusy ? '...' : (image ? 'Replace' : 'Upload')}
+              </button>
+              {image && (
+                <button onClick={() => { if (window.confirm('Remove image?')) onDeleteImage(); }}
+                  className="text-[11px] inline-flex items-center gap-1 px-2 py-1 rounded" style={{ color: '#b04a2f' }}>
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </div>
+          {image ? (
+            <button onClick={() => setZoomImage(true)} className="block w-full" style={{ background: '#faf6ed' }}>
+              <img src={image} alt={child.name} style={{ width: '100%', display: 'block', maxHeight: 400, objectFit: 'contain' }} />
+            </button>
+          ) : (
+            <div className="px-4 py-8 text-center text-xs" style={{ color: '#7a6f56' }}>
+              No image yet. Upload a screenshot of their words.
+            </div>
+          )}
+        </section>
+
+        {/* Activities (assignments) */}
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-display text-sm font-semibold" style={{ color: '#1a2438' }}>
+              Activities <span className="font-body font-normal" style={{ color: '#7a6f56' }}>· {activities.length}</span>
+            </h3>
+            {unassignedActivities.length > 0 && (
+              <button onClick={() => setShowAssignPicker(!showAssignPicker)}
+                className="text-[11px] inline-flex items-center gap-1 px-2 py-1 rounded font-medium"
+                style={{ background: '#faf6ed', color: '#1a2438', border: '1px dashed #d4c8a8' }}>
+                <Plus className="w-3 h-3" /> Assign to activity
+              </button>
+            )}
+          </div>
+
+          {showAssignPicker && (
+            <div className="mb-3 rounded-xl p-2" style={{ background: '#fff9ec', border: '1px solid #d4c8a8' }}>
+              <div className="text-[11px] font-medium mb-2 px-1" style={{ color: '#7a6f56' }}>Pick an activity to add {child.name} to:</div>
+              <div className="space-y-1">
+                {unassignedActivities
+                  .sort((a, b) => (a.klass === child.klass ? -1 : 1) - (b.klass === child.klass ? -1 : 1))
+                  .map(a => (
+                    <button key={a.id} onClick={() => { onAssign(a.id); setShowAssignPicker(false); }}
+                      className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-md"
+                      style={{ background: '#fff', border: '1px solid #e8dfc9' }}>
+                      <ActivityIcon name={a.icon} className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="text-sm flex-1 truncate">{a.title}</span>
+                      <span className="text-[10px] uppercase tracking-wider" style={{ color: a.klass === child.klass ? '#b04a2f' : '#7a6f56' }}>{classLabel(a.klass)}</span>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {activities.length === 0 ? (
+            <p className="text-sm py-4 text-center rounded-xl" style={{ background: '#fff9ec', color: '#7a6f56', border: '1px dashed #d4c8a8' }}>
+              Not assigned to any activity yet.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {activities.map(activity => {
+                const teacher = data.customTeachers[activity.id] ?? activity.teacher;
+                const k = assignmentKey(child.id, activity.id);
+                const asg = data.assignments[k] || { verses: '', text: '' };
+                const shareTitle = `${child.name} — ${activity.title}`;
+                const shareBody = `${child.name}\n${activity.title} — ${classLabel(activity.klass)}\nTeacher: ${teacher}${asg.verses ? '\nVerse: ' + asg.verses : ''}\n\n${asg.text || '(no text)'}`;
+                return (
+                  <div key={activity.id} className="rounded-xl px-4 py-3" style={{ background: '#fff', border: '1px solid #e8dfc9' }}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ActivityIcon name={activity.icon} className="w-4 h-4 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-display font-semibold truncate">{activity.title}</div>
+                          <div className="text-xs" style={{ color: '#7a6f56' }}>{classLabel(activity.klass)} · Teacher: {teacher}</div>
+                        </div>
+                      </div>
+                      <button onClick={() => { if (window.confirm(`Remove ${child.name} from ${activity.title}?`)) onUnassign(activity.id); }}
+                        className="p-1 rounded flex-shrink-0" style={{ color: '#7a6f56' }}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      <input value={asg.verses || ''} onChange={(e) => onSetAssignment(activity.id, { verses: e.target.value })}
+                        placeholder="Verse reference / role label (optional)"
+                        className="w-full px-3 py-2 text-xs rounded-md"
+                        style={{ background: '#faf6ed', border: '1px solid #d4c8a8' }} />
+                      <textarea value={asg.text || ''} onChange={(e) => onSetAssignment(activity.id, { text: e.target.value })}
+                        placeholder="Words / lines for this activity..." rows={4}
+                        className="w-full px-3 py-2 text-sm rounded-md resize-y"
+                        style={{ background: '#faf6ed', border: '1px solid #d4c8a8', minHeight: 90 }} />
+                      <ShareRow title={shareTitle} body={shareBody} imageDataURL={image} disabled={!asg.text && !image} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Attendance */}
+        {sortedDates.length > 0 && (
+          <section className="rounded-xl px-4 py-3" style={{ background: '#fff', border: '1px solid #e8dfc9' }}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#7a6f56' }}>
+                <Calendar className="w-3.5 h-3.5" /> Attendance
+              </div>
+              <div className="text-xs" style={{ color: atRisk ? '#b04a2f' : '#7a6f56' }}>
+                {attended}/{sortedDates.length}{atRisk && ' · at risk'}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sortedDates.map(d => {
+                const f = formatDate(d.date);
+                const present = !!data.attendance[`${child.id}|${d.id}`];
+                return (
+                  <button key={d.id} onClick={() => onToggleAttendance(d.id)}
+                    className="att-dot flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg"
+                    style={{ background: present ? '#1a2438' : '#faf6ed', color: present ? '#faf6ed' : '#1a2438', border: '1px solid ' + (present ? '#1a2438' : '#e8dfc9'), minWidth: 52 }}>
+                    <span className="text-[10px] uppercase tracking-wider opacity-80">{f.day.slice(0, 3)}</span>
+                    <span className="text-xs font-medium">{f.date.split(' ')[0]}</span>
+                    {present && <Check className="w-3 h-3" strokeWidth={3} />}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {zoomImage && image && (
+        <div onClick={() => setZoomImage(false)} className="fixed inset-0 z-[60] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.92)' }}>
+          <img src={image} alt={child.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+          <button onClick={() => setZoomImage(false)} className="absolute top-4 right-4 p-2 rounded-full" style={{ background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChildPicker({ activity, allChildren, assignedIds, onClose, onPick, onCreateNew }) {
+  const [query, setQuery] = useState('');
+  const [showAllClasses, setShowAllClasses] = useState(false);
+
+  const candidates = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = allChildren.filter(c => !assignedIds.includes(c.id));
+    if (!showAllClasses) list = list.filter(c => c.klass === activity.klass);
+    if (q) list = list.filter(c => c.name.toLowerCase().includes(q));
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    return list;
+  }, [allChildren, assignedIds, query, showAllClasses, activity.klass]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-t-2xl md:rounded-2xl flex flex-col" style={{ background: '#faf6ed', maxHeight: '90vh' }}>
+        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid #e8dfc9' }}>
+          <div className="flex-1">
+            <h3 className="font-display font-semibold text-base">Add child to {activity.title}</h3>
+            <p className="text-xs" style={{ color: '#7a6f56' }}>{classLabel(activity.klass)}</p>
+          </div>
+          <button onClick={onClose} className="p-2"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="px-4 py-3 space-y-2" style={{ borderBottom: '1px solid #e8dfc9' }}>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute" style={{ left: 12, top: '50%', transform: 'translateY(-50%)', color: '#7a6f56' }} />
+            <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search children…"
+              className="w-full pl-9 pr-3 py-2 rounded-lg text-sm"
+              style={{ background: '#fff', border: '1px solid #d4c8a8' }} />
+          </div>
+          <label className="flex items-center gap-2 text-xs" style={{ color: '#7a6f56' }}>
+            <input type="checkbox" checked={showAllClasses} onChange={(e) => setShowAllClasses(e.target.checked)} />
+            Show children from other classes
+          </label>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-2">
+          {candidates.length === 0 ? (
+            <p className="text-sm py-8 text-center" style={{ color: '#7a6f56' }}>
+              {query ? 'No matching children.' : (showAllClasses ? 'All children are already in this activity.' : `No more ${classLabel(activity.klass)} children. Toggle "other classes" or create a new child below.`)}
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {candidates.map(c => (
+                <button key={c.id} onClick={() => onPick(c.id)}
+                  className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg"
+                  style={{ background: '#fff', border: '1px solid #e8dfc9' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{c.name}</div>
+                    <div className="text-[11px]" style={{ color: '#7a6f56' }}>{classLabel(c.klass)}</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-40" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="px-4 py-3" style={{ borderTop: '1px solid #e8dfc9' }}>
+          <button onClick={onCreateNew}
+            className="w-full px-3 py-2.5 rounded-lg text-sm font-medium inline-flex items-center justify-center gap-2"
+            style={{ background: '#1a2438', color: '#faf6ed' }}>
+            <UserPlus className="w-4 h-4" /> Create new child
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CreateChildSheet({ context, existingNames, onClose, onCreate }) {
+  const [name, setName] = useState('');
+  const [klass, setKlass] = useState(context.klass || 'bigger');
+  const [verses, setVerses] = useState('');
+  const [text, setText] = useState('');
+  const [warning, setWarning] = useState('');
+
+  const handleCreate = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const lname = trimmed.toLowerCase();
+    const dupe = existingNames.find(e => e.klass === klass && e.name.trim().toLowerCase() === lname);
+    if (dupe) {
+      setWarning(`"${trimmed}" already exists in ${classLabel(klass)}. Use a unique name (e.g. "${trimmed} K") or open the existing child from the Children tab.`);
+      return;
+    }
+    onCreate({ name: trimmed, klass, verses, text });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[55] flex items-end md:items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-t-2xl md:rounded-2xl" style={{ background: '#faf6ed', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #e8dfc9' }}>
+          <h3 className="font-display font-semibold text-base">New child</h3>
+          <button onClick={onClose} className="p-2"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="px-4 py-3 space-y-2">
+          <input autoFocus value={name} onChange={(e) => { setName(e.target.value); setWarning(''); }}
+            placeholder="Child's name"
+            className="w-full px-3 py-2 text-sm rounded-md"
+            style={{ background: '#fff', border: '1px solid #d4c8a8' }} />
+
+          <div>
+            <div className="text-[11px] mb-1" style={{ color: '#7a6f56' }}>Class</div>
+            <div className="flex gap-1.5 flex-wrap">
+              {Object.keys(CLASS_INFO).map(k => (
+                <button key={k} onClick={() => { setKlass(k); setWarning(''); }}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium"
+                  style={{ background: klass === k ? '#1a2438' : '#fff', color: klass === k ? '#faf6ed' : '#1a2438', border: '1px solid ' + (klass === k ? '#1a2438' : '#d4c8a8') }}>
+                  {CLASS_INFO[k].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {context.activityId && (
+            <>
+              <input value={verses} onChange={(e) => setVerses(e.target.value)}
+                placeholder="Verse / role (optional, for this activity)"
+                className="w-full px-3 py-2 text-sm rounded-md"
+                style={{ background: '#fff', border: '1px solid #d4c8a8' }} />
+              <textarea value={text} onChange={(e) => setText(e.target.value)}
+                placeholder="Their words / lines (optional)" rows={3}
+                className="w-full px-3 py-2 text-sm rounded-md resize-y"
+                style={{ background: '#fff', border: '1px solid #d4c8a8', minHeight: 70 }} />
+            </>
+          )}
+
+          {warning && <p className="text-xs" style={{ color: '#b04a2f' }}>{warning}</p>}
+        </div>
+
+        <div className="px-4 py-3 flex gap-2" style={{ borderTop: '1px solid #e8dfc9' }}>
+          <button onClick={handleCreate} disabled={!name.trim()}
+            className="flex-1 px-3 py-2.5 rounded-md text-sm font-medium disabled:opacity-40"
+            style={{ background: '#1a2438', color: '#faf6ed' }}>
+            Create{context.activityId ? ' & assign' : ''}
+          </button>
+          <button onClick={onClose} className="px-3 py-2.5 rounded-md text-sm font-medium"
+            style={{ background: 'transparent', color: '#7a6f56', border: '1px solid #d4c8a8' }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShareRow({ title, body, imageDataURL, disabled }) {
+  const [feedback, setFeedback] = useState('');
+  const hasShare = typeof navigator !== 'undefined' && !!navigator.share;
+  const handleCopy = async () => {
+    if (disabled) return;
+    const ok = await copyToClipboard(body);
+    setFeedback(ok ? 'Copied!' : 'Copy failed');
+    setTimeout(() => setFeedback(''), 1800);
+  };
+  const handleShare = async () => {
+    if (disabled) return;
+    const ok = await shareTextOrFiles({ title, text: body, imageDataURL });
+    if (!ok) {
+      const copied = await copyToClipboard(body);
+      setFeedback(copied ? 'Copied (share unavailable)' : 'Share failed');
+      setTimeout(() => setFeedback(''), 2000);
+    }
+  };
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <button onClick={handleCopy} disabled={disabled}
+        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium disabled:opacity-40"
+        style={{ background: '#1a2438', color: '#faf6ed' }}>
+        <Copy className="w-3 h-3" /> Copy
+      </button>
+      {hasShare && (
+        <button onClick={handleShare} disabled={disabled}
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium disabled:opacity-40"
+          style={{ background: '#b04a2f', color: '#faf6ed' }}>
+          <Share2 className="w-3 h-3" /> Share{imageDataURL ? ' + image' : ''}
+        </button>
+      )}
+      {feedback && <span className="text-[11px]" style={{ color: '#1a2438' }}>{feedback}</span>}
+    </div>
+  );
+}
+
+function AddActivityButton({ klass, onAdd }) {
+  const [open, setOpen] = useState(false);
+  if (open) return <AddActivityForm klass={klass} onCancel={() => setOpen(false)} onSave={(a) => { onAdd(a); setOpen(false); }} />;
+  return (
+    <button onClick={() => setOpen(true)}
+      className="w-full px-3 py-2.5 rounded-xl text-xs font-medium inline-flex items-center justify-center gap-1"
+      style={{ background: 'transparent', color: '#7a6f56', border: '1.5px dashed #d4c8a8' }}>
+      <Plus className="w-3.5 h-3.5" /> Add activity to {classLabel(klass)}
+    </button>
+  );
+}
+
+function AddActivityForm({ klass, onCancel, onSave }) {
+  const [title, setTitle] = useState('');
+  const [teacher, setTeacher] = useState('');
+  const [icon, setIcon] = useState('sparkles');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkLabel, setLinkLabel] = useState('');
+  const save = () => {
+    if (!title.trim() || !teacher.trim()) return;
+    const a = { title: title.trim(), teacher: teacher.trim(), icon };
+    if (linkUrl.trim()) a.links = [{ label: linkLabel.trim() || 'Link', url: linkUrl.trim() }];
+    onSave(a);
+  };
+  const opts = [{ id: 'sparkles', label: 'Performance', Icon: Sparkles }, { id: 'music', label: 'Song', Icon: Music }, { id: 'book', label: 'Recitation', Icon: BookOpen }];
+  return (
+    <div className="p-3 rounded-xl space-y-2" style={{ background: '#fff9ec', border: '1px solid #d4c8a8' }}>
+      <div className="font-display text-sm font-semibold mb-1">New activity for {classLabel(klass)}</div>
+      <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)}
+        placeholder="Activity title (e.g. Comedy Skit, Solo Song)"
+        className="w-full px-3 py-2 text-sm rounded-md" style={{ background: '#fff', border: '1px solid #d4c8a8' }} />
+      <input value={teacher} onChange={(e) => setTeacher(e.target.value)} placeholder="Teacher in charge"
+        className="w-full px-3 py-2 text-sm rounded-md" style={{ background: '#fff', border: '1px solid #d4c8a8' }} />
+      <div className="flex gap-1.5">
+        {opts.map(o => (
+          <button key={o.id} onClick={() => setIcon(o.id)}
+            className="flex-1 px-2 py-2 rounded-md text-xs font-medium inline-flex items-center justify-center gap-1"
+            style={{ background: icon === o.id ? '#1a2438' : '#fff', color: icon === o.id ? '#faf6ed' : '#1a2438', border: '1px solid ' + (icon === o.id ? '#1a2438' : '#d4c8a8') }}>
+            <o.Icon className="w-3 h-3" /> {o.label}
+          </button>
+        ))}
+      </div>
+      <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="YouTube/reference link (optional)"
+        className="w-full px-3 py-2 text-sm rounded-md" style={{ background: '#fff', border: '1px solid #d4c8a8' }} />
+      {linkUrl && (
+        <input value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} placeholder="Link label (default: 'Link')"
+          className="w-full px-3 py-2 text-sm rounded-md" style={{ background: '#fff', border: '1px solid #d4c8a8' }} />
+      )}
+      <div className="flex gap-2 pt-1">
+        <button onClick={save} disabled={!title.trim() || !teacher.trim()}
+          className="flex-1 px-3 py-2 rounded-md text-xs font-medium disabled:opacity-40"
+          style={{ background: '#1a2438', color: '#faf6ed' }}>Create activity</button>
+        <button onClick={onCancel} className="px-3 py-2 rounded-md text-xs font-medium"
+          style={{ background: 'transparent', color: '#7a6f56', border: '1px solid #d4c8a8' }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+
+const _root = ReactDOM.createRoot(document.getElementById('root'));
+_root.render(<ChildrensDayTracker />);
+</script>
+</body>
+</html>
